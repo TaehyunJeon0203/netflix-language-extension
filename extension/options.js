@@ -12,7 +12,13 @@ form.addEventListener("submit", async (event) => {
   status.className = "";
 
   try {
-    const url = new URL(input.value.trim());
+    const value = input.value.trim();
+    if (!value) {
+      await chrome.storage.sync.remove("backendUrl");
+      status.textContent = "Dictionary lookup disabled.";
+      return;
+    }
+    const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       throw new Error("Use an HTTP or HTTPS URL.");
     }

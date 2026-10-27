@@ -9,11 +9,11 @@
   <body>
     <main>
       <p class="eyebrow">Netflix Subtitle Learner</p>
-      <h1>Backend settings</h1>
-      <p class="description">Enter the HTTP endpoint that translates subtitle text into Korean.</p>
+      <h1>Optional dictionary</h1>
+      <p class="description">The extension uses subtitle tracks supplied by Netflix. Add the free dictionary server endpoint only if you want English word definitions.</p>
       <form>
-        <label for="backend-url">Backend URL</label>
-        <input id="backend-url" name="backendUrl" type="url" inputmode="url" placeholder="http://localhost:3000/translate" required />
+        <label for="backend-url">Dictionary server URL</label>
+        <input id="backend-url" name="backendUrl" type="url" inputmode="url" placeholder="http://localhost:3000/api/analyze" />
         <button type="submit">Save settings</button>
         <p id="status" role="status" aria-live="polite"></p>
       </form>

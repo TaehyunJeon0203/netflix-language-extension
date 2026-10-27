@@ -2,7 +2,7 @@
   "name": "netflix-language-extension-server",
   "version": "0.1.0",
   "private": true,
-  "description": "Minimal DeepL translation proxy for the Netflix language extension",
+  "description": "Free dictionary lookup service for the Netflix language extension",
   "type": "module",
   "engines": {
     "node": ">=20"

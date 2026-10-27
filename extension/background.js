@@ -1,9 +1,7 @@
 const STORAGE_KEY = "backendUrl";
 
 function normalizeBackendUrl(value) {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error("Set a backend URL in the extension settings first.");
-  }
+  if (typeof value !== "string" || !value.trim()) return null;
 
   let url;
   try {
@@ -27,7 +25,7 @@ function normalizeKeywords(value) {
       if (typeof item === "string") return { word: item, meaning: "" };
       if (!item || typeof item !== "object") return null;
 
-      const word = item.word ?? item.term ?? item.english;
+      const word = item.word ?? item.text ?? item.term ?? item.english;
       const meaning = item.meaning ?? item.definition ?? item.korean ?? "";
       if (typeof word !== "string" || !word.trim()) return null;
 
@@ -39,9 +37,10 @@ function normalizeKeywords(value) {
     .filter(Boolean);
 }
 
-async function translateSubtitle(payload) {
+async function lookupWords(payload) {
   const stored = await chrome.storage.sync.get(STORAGE_KEY);
   const backendUrl = normalizeBackendUrl(stored[STORAGE_KEY]);
+  if (!backendUrl) return { keyWords: [], skipped: true };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -50,12 +49,7 @@ async function translateSubtitle(payload) {
     const response = await fetch(backendUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: payload.text,
-        sourceLanguage: "auto",
-        targetLanguage: "ko",
-        url: payload.url
-      }),
+      body: JSON.stringify({ text: payload.text }),
       signal: controller.signal
     });
 
@@ -70,14 +64,9 @@ async function translateSubtitle(payload) {
       throw new Error("The backend returned invalid JSON.");
     }
 
-    const translation = data.translation ?? data.korean ?? data.translatedText;
-    if (typeof translation !== "string" || !translation.trim()) {
-      throw new Error("The backend response did not include a translation.");
-    }
-
     return {
-      translation: translation.trim(),
-      keyWords: normalizeKeywords(data.keyWords ?? data.keywords ?? data.words)
+      keyWords: normalizeKeywords(data.keyWords ?? data.keywords ?? data.words),
+      skipped: false
     };
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -90,14 +79,14 @@ async function translateSubtitle(payload) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== "TRANSLATE_SUBTITLE") return false;
+  if (message?.type !== "LOOKUP_WORDS") return false;
 
-  translateSubtitle(message.payload)
+  lookupWords(message.payload)
     .then((result) => sendResponse({ ok: true, result }))
     .catch((error) => {
       sendResponse({
         ok: false,
-        error: error instanceof Error ? error.message : "Translation failed."
+        error: error instanceof Error ? error.message : "Word lookup failed."
       });
     });
 

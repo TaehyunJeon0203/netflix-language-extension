@@ -1,6 +1,6 @@
 # Netflix Subtitle Learner (Chrome MV3)
 
-A minimal Chrome extension that watches rendered Netflix subtitles. When playback is paused, it sends the current subtitle to a configured backend and shows the Korean translation and key words in an on-page overlay.
+A minimal Chrome extension that shows Netflix-provided English and Korean subtitles together when playback is paused. It does not translate subtitle text. An optional local server uses the free Dictionary API for English word definitions.
 
 ## Load locally
 
@@ -8,23 +8,20 @@ A minimal Chrome extension that watches rendered Netflix subtitles. When playbac
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
 4. Select this `extension` directory.
-5. Click the extension toolbar icon and save your backend URL.
-6. Open a Netflix title with subtitles enabled, then pause while a subtitle is visible.
+5. Optional: start the included dictionary server, then save `http://localhost:3000/api/analyze` from the extension toolbar icon.
+6. Open a Netflix title that offers both English and Korean subtitles, enable subtitles, then pause while a subtitle is visible.
 
 After changing extension files, click **Reload** on the extension card and refresh the Netflix tab.
 
-## Backend configuration and contract
+## Optional dictionary server
 
-The toolbar popup (also available under the extension's **Options**) stores the endpoint in Chrome sync storage. Both `http://` and `https://` URLs are accepted. With the included server, use `http://localhost:8787/api/analyze` during development.
+The extension works without a backend. The toolbar popup (also available under the extension's **Options**) stores an optional dictionary endpoint in Chrome sync storage. Both `http://` and `https://` URLs are accepted. Clear and save the field to disable lookups.
 
 The extension sends a JSON `POST` request:
 
 ```json
 {
-  "text": "The rendered subtitle text",
-  "sourceLanguage": "auto",
-  "targetLanguage": "ko",
-  "url": "https://www.netflix.com/watch/..."
+  "text": "The rendered English subtitle text"
 }
 ```
 
@@ -32,21 +29,25 @@ Expected response:
 
 ```json
 {
-  "translation": "한국어 번역",
-  "keyWords": [
-    { "word": "rendered", "meaning": "표시된" },
-    { "word": "subtitle", "meaning": "자막" }
+  "words": [
+    { "text": "rendered", "definition": "represented visually" },
+    { "text": "subtitle", "definition": "text displayed at the bottom of a screen" }
   ]
 }
 ```
 
-For convenience, `korean`, `translatedText`, `keywords`, and string-only keyword arrays are also accepted. Requests time out after 15 seconds. The extension requests broad host access because the backend URL is user-configurable; only the saved endpoint receives subtitle data.
+For compatibility, `keyWords`, `keywords`, and string-only word arrays are also accepted. Requests time out after 15 seconds. The extension requests broad host access because the dictionary URL is user-configurable; only the saved endpoint receives English subtitle text.
 
 ## How detection works
 
-- A `MutationObserver` reacts to Netflix's dynamically rendered player DOM.
-- A 600 ms polling fallback handles player replacements or DOM changes that do not produce a useful observer event.
-- The current `<video>` element is rebound when Netflix replaces it.
-- Consecutive duplicate subtitle text is sent only once. A changed subtitle can be sent while already paused.
+- Rendered subtitle DOM and standard HTML media `textTracks` are checked first.
+- If one language is missing, a main-world bridge checks Netflix's private player API for both tracks. While paused, it briefly selects English and Korean in turn, reads the rendered cue, and restores the original track.
+- A `MutationObserver` plus a 600 ms polling fallback handles Netflix's dynamically replaced player and subtitle DOM.
+- Only the English text is sent to the optional dictionary server.
 
-Netflix can change its private player markup at any time. Update `SUBTITLE_SELECTORS` in `content.js` if subtitle detection stops working.
+## Limitations
+
+- Netflix normally renders only the selected subtitle track. Dual capture therefore depends on an undocumented Netflix player API and current subtitle DOM; Netflix can change or block either at any time.
+- Both English and Korean tracks must be offered for that title and a cue must exist at the paused timestamp. Otherwise the overlay keeps the available English subtitle and reports that Korean is unavailable.
+- Track switching can cause a brief subtitle flicker while paused. The extension restores the original track, but restoration can fail if Netflix replaces the player during capture.
+- Subtitle text is read from cues already made available by Netflix. The extension does not download, decrypt, or bypass access controls for unavailable tracks.

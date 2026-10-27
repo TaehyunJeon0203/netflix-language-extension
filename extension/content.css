@@ -1,2 +1,0 @@
-#nlh-popup { position: fixed; z-index: 2147483647; right: 28px; bottom: 110px; max-width: 380px; padding: 16px 18px; color: #fff; background: rgba(20,20,20,.94); border: 1px solid rgba(255,255,255,.2); border-radius: 10px; box-shadow: 0 8px 28px #0008; font: 14px/1.5 system-ui,sans-serif; }
-#nlh-popup[hidden] { display:none; } #nlh-source { color:#ddd; } #nlh-translation { margin-top:8px; font-size:18px; font-weight:700; } #nlh-words { margin-top:10px; color:#b9e7ff; }

@@ -3,18 +3,16 @@ import express, { type ErrorRequestHandler } from "express";
 import { rateLimit } from "express-rate-limit";
 import type { AppConfig } from "./config.js";
 import { TtlCache } from "./cache.js";
-import { DeepLError, type Translator } from "./deepl.js";
 import { extractWords, type WordMetadata } from "./words.js";
 import type { DictionaryLookup } from "./dictionary.js";
 
 interface AnalyzeResponse {
-  translation: string;
   words: WordMetadata[];
 }
 
 const MAX_TEXT_LENGTH = 5_000;
 
-export function createApp(config: AppConfig, translator: Translator, dictionary?: DictionaryLookup) {
+export function createApp(config: AppConfig, dictionary?: DictionaryLookup) {
   const app = express();
   const cache = new TtlCache<AnalyzeResponse>(
     config.cacheTtlMs,
@@ -66,7 +64,6 @@ export function createApp(config: AppConfig, translator: Translator, dictionary?
         ? await Promise.all(words.map((word) => dictionary(word.normalized)))
         : [];
       const result: AnalyzeResponse = {
-        translation: await translator.translate(text),
         words: words.map((word, index) => ({ ...word, ...(dictionaryResults[index] ?? {}) }))
       };
       cache.set(text, result);
@@ -94,16 +91,6 @@ export function createApp(config: AppConfig, translator: Translator, dictionary?
       });
       return;
     }
-    if (error instanceof DeepLError) {
-      res.status(502).json({
-        error: {
-          code: "TRANSLATION_FAILED",
-          message: "Translation service is unavailable"
-        }
-      });
-      return;
-    }
-
     console.error(error);
     res.status(500).json({
       error: { code: "INTERNAL_ERROR", message: "Internal server error" }
