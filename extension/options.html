@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Netflix Subtitle Learner settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Netflix Subtitle Learner</p>
+      <h1>Backend settings</h1>
+      <p class="description">Enter the HTTP endpoint that translates subtitle text into Korean.</p>
+      <form>
+        <label for="backend-url">Backend URL</label>
+        <input id="backend-url" name="backendUrl" type="url" inputmode="url" placeholder="http://localhost:3000/translate" required />
+        <button type="submit">Save settings</button>
+        <p id="status" role="status" aria-live="polite"></p>
+      </form>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
