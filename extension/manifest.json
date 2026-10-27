@@ -3,8 +3,8 @@
   "name": "Netflix Subtitle Learner",
   "version": "0.2.0",
   "description": "Shows Netflix English and Korean subtitles with word definitions when paused.",
-  "permissions": ["storage"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [],
+  "host_permissions": ["https://api.dictionaryapi.dev/*"],
   "background": {
     "service_worker": "background.js"
   },

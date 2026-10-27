@@ -1,6 +1,5 @@
-server/node_modules/
-server/dist/
-server/.env
-server/coverage/
+node_modules/
+dist/
+coverage/
 *.log
 .DS_Store

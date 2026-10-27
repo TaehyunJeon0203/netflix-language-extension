@@ -1,81 +1,20 @@
-const STORAGE_KEY = "backendUrl";
-
-function normalizeBackendUrl(value) {
-  if (typeof value !== "string" || !value.trim()) return null;
-
-  let url;
-  try {
-    url = new URL(value.trim());
-  } catch {
-    throw new Error("The configured backend URL is invalid.");
-  }
-
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("The backend URL must use HTTP or HTTPS.");
-  }
-
-  return url.toString();
-}
-
-function normalizeKeywords(value) {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((item) => {
-      if (typeof item === "string") return { word: item, meaning: "" };
-      if (!item || typeof item !== "object") return null;
-
-      const word = item.word ?? item.text ?? item.term ?? item.english;
-      const meaning = item.meaning ?? item.definition ?? item.korean ?? "";
-      if (typeof word !== "string" || !word.trim()) return null;
-
-      return {
-        word: word.trim(),
-        meaning: typeof meaning === "string" && meaning.trim() ? meaning.trim() : "뜻 정보 없음"
-      };
-    })
-    .filter(Boolean);
-}
-
 async function lookupWords(payload) {
-  const stored = await chrome.storage.sync.get(STORAGE_KEY);
-  const backendUrl = normalizeBackendUrl(stored[STORAGE_KEY]);
-  if (!backendUrl) return { keyWords: [], skipped: true };
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-  try {
-    const response = await fetch(backendUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: payload.text }),
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend request failed (${response.status}).`);
-    }
-
-    let data;
+  const words = [...new Set((payload.text.match(/[A-Za-z]+(?:['’][A-Za-z]+)*/g) || [])
+    .map((word) => word.toLowerCase()))].slice(0, 5);
+  const keyWords = [];
+  for (const word of words) {
     try {
-      data = await response.json();
+      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      if (!response.ok) continue;
+      const entries = await response.json();
+      const meaning = entries[0]?.meanings?.find((item) => item.definitions?.[0]?.definition);
+      const definition = meaning?.definitions?.[0]?.definition;
+      if (definition) keyWords.push({ word, meaning: definition });
     } catch {
-      throw new Error("The backend returned invalid JSON.");
+      // Continue when one word is unavailable.
     }
-
-    return {
-      keyWords: normalizeKeywords(data.keyWords ?? data.keywords ?? data.words),
-      skipped: false
-    };
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("The backend request timed out.");
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
   }
+  return { keyWords, skipped: false };
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
