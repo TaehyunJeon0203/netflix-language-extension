@@ -105,7 +105,11 @@
 
   function createOverlay() {
     const existing = document.getElementById(OVERLAY_HOST_ID);
-    if (existing) return existing.shadowRoot;
+    const mountPoint = document.fullscreenElement || document.body;
+    if (existing) {
+      if (existing.parentElement !== mountPoint) mountPoint.appendChild(existing);
+      return existing.shadowRoot;
+    }
 
     const host = document.createElement("div");
     host.id = OVERLAY_HOST_ID;
@@ -120,7 +124,7 @@
     root.innerHTML = `
       <style>
         :host { color-scheme: dark; }
-        .card { box-sizing: border-box; width: min(400px, calc(100vw - 32px)); max-height: min(560px, calc(100vh - 110px)); overflow: auto; border: 1px solid rgba(255,255,255,.15); border-radius: 14px; background: rgba(18,18,18,.96); box-shadow: 0 18px 48px rgba(0,0,0,.5); color: #f5f5f5; font: 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding: 18px; }
+         .card { box-sizing: border-box; width: min(560px, calc(100vw - 32px)); max-height: min(560px, calc(100vh - 110px)); overflow: auto; border: 1px solid rgba(255,255,255,.15); border-radius: 14px; background: rgba(18,18,18,.96); box-shadow: 0 18px 48px rgba(0,0,0,.5); color: #f5f5f5; font: 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding: 18px; }
         .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
         .title { margin: 0; color: #e50914; font-size: 13px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
         .close { border: 0; background: transparent; color: #aaa; cursor: pointer; font-size: 22px; line-height: 1; padding: 0 2px; }
@@ -154,12 +158,18 @@
       captureInProgress = false;
       host.remove();
     });
-    document.documentElement.appendChild(host);
+    mountPoint.appendChild(host);
     return root;
   }
 
   function getOverlayRoot() {
     return document.getElementById(OVERLAY_HOST_ID)?.shadowRoot || createOverlay();
+  }
+
+  function hideOverlay() {
+    requestSequence += 1;
+    captureInProgress = false;
+    document.getElementById(OVERLAY_HOST_ID)?.remove();
   }
 
   function showLoading() {
@@ -268,8 +278,10 @@
     const nextVideo = document.querySelector("video");
     if (!nextVideo || nextVideo === observedVideo) return;
     observedVideo?.removeEventListener("pause", handlePause);
+    observedVideo?.removeEventListener("play", hideOverlay);
     observedVideo = nextVideo;
     observedVideo.addEventListener("pause", handlePause);
+    observedVideo.addEventListener("play", hideOverlay);
   }
 
   const observer = new MutationObserver(() => {
@@ -284,4 +296,9 @@
     bindVideo();
     scanSubtitle();
   }, POLL_INTERVAL_MS);
+  document.addEventListener("fullscreenchange", () => {
+    const host = document.getElementById(OVERLAY_HOST_ID);
+    const mountPoint = document.fullscreenElement || document.body;
+    if (host && host.parentElement !== mountPoint) mountPoint.appendChild(host);
+  });
 })();

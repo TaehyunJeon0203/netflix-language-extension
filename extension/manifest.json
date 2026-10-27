@@ -4,7 +4,10 @@
   "version": "0.2.0",
   "description": "Shows Netflix English and Korean subtitles with word definitions when paused.",
   "permissions": [],
-  "host_permissions": ["https://api.dictionaryapi.dev/*"],
+  "host_permissions": [
+    "https://api.dictionaryapi.dev/*",
+    "https://api.mymemory.translated.net/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },

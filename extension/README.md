@@ -14,9 +14,10 @@ After changing extension files, click **Reload** on the extension card and refre
 
 ## Dictionary lookup
 
-The background service worker calls Dictionary API directly for up to five English words per pause.
-No server, API key, or configuration is required. If the dictionary service is unavailable, subtitles
-remain visible and only word definitions are omitted.
+The background service worker filters common function words, keeps useful nouns/verbs/adjectives/adverbs,
+and calls Dictionary API plus MyMemory's free translation endpoint directly for up to five words per pause.
+No server, API key, or configuration is required. If either service is unavailable, subtitles remain visible
+and only word definitions are omitted.
 
 ## How detection works
 
